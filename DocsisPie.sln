@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocsisPie.Consola", "DocsisPie.Consola\DocsisPie.Consola.csproj", "{AA435F44-1556-4C82-A355-A7D2FA49873B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocsisPie.Core", "DocsisPie.Core\DocsisPie.Core.csproj", "{FB51DE04-CF3A-4D3B-806D-256AC678B01B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AA435F44-1556-4C82-A355-A7D2FA49873B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA435F44-1556-4C82-A355-A7D2FA49873B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA435F44-1556-4C82-A355-A7D2FA49873B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA435F44-1556-4C82-A355-A7D2FA49873B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FB51DE04-CF3A-4D3B-806D-256AC678B01B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FB51DE04-CF3A-4D3B-806D-256AC678B01B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FB51DE04-CF3A-4D3B-806D-256AC678B01B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FB51DE04-CF3A-4D3B-806D-256AC678B01B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
