@@ -16,6 +16,7 @@ public class Sim
 
     // Historial para los gráficos: una muestra cada 10 ms (en Python, los deque h_t, h_qd, ...)
     public Queue<double> HT = new(), HQd = new(), HDp = new(), HQ = new(), HTput = new();
+    public Queue<double> HErr = new();   // señal de error e = retardo − target [ms]
     private int maxMuestras;
 
     public Sim()
@@ -33,7 +34,7 @@ public class Sim
         Actuador = new Actuador(Controlador);
         NextUpdate = Parametros.TUpdateMs / 1000.0;
         maxMuestras = (int)(Config.VENTANA_S / (Config.DT * Config.MUESTREO_PASOS)) + 50;
-        foreach (var h in new[] { HT, HQd, HDp, HQ, HTput })
+        foreach (var h in new[] { HT, HQd, HDp, HQ, HTput, HErr })
             h.Clear();
     }
 
@@ -67,8 +68,11 @@ public class Sim
         {
             double tput = Proceso.Served * 8 / (Config.DT * Config.MUESTREO_PASOS) / 1e6;
             Proceso.Served = 0.0;
+            double qdMs = Sensor.EstimateQdelay(Proceso) * 1000.0;
             Agregar(HT, T);
-            Agregar(HQd, Sensor.EstimateQdelay(Proceso) * 1000.0);
+            Agregar(HQd, qdMs);
+            // Señal de error: lo que se mide menos lo que se quiere (igual que en el PI del Controlador)
+            Agregar(HErr, qdMs - Parametros.TargetMs);
             Agregar(HDp, Controlador.DropProb);
             Agregar(HQ, Proceso.Q / Config.MSS);
             Agregar(HTput, tput);

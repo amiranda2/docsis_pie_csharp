@@ -17,6 +17,7 @@ public class Monitor : Form
 
     // --- Gráficos (ScottPlot) ---
     private readonly FormsPlot gRetardo = new();   // ax1: retardo de cola
+    private readonly FormsPlot gError = new();     // señal de error e = retardo − target
     private readonly FormsPlot gProb = new();      // ax2: probabilidad de descarte
     private readonly FormsPlot gCola = new();      // ax3: cola en paquetes
 
@@ -51,30 +52,32 @@ public class Monitor : Form
     // =========================================================================
 
     /// <summary>
-    /// La ventana es una grilla de 5 filas:
-    /// título / gráfico retardo / gráfico prob. / gráfico cola / panel de controles.
+    /// La ventana es una grilla de 6 filas:
+    /// título / retardo / error / prob. / cola / panel de controles.
     /// </summary>
     private void CrearPantalla()
     {
-        var grilla = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 5 };
-        grilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));     // título
-        grilla.RowStyles.Add(new RowStyle(SizeType.Percent, 33.3f));   // gráfico 1
-        grilla.RowStyles.Add(new RowStyle(SizeType.Percent, 33.3f));   // gráfico 2
-        grilla.RowStyles.Add(new RowStyle(SizeType.Percent, 33.3f));   // gráfico 3
+        var grilla = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 6 };
+        grilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));   // título
+        grilla.RowStyles.Add(new RowStyle(SizeType.Percent, 25));    // gráfico retardo
+        grilla.RowStyles.Add(new RowStyle(SizeType.Percent, 25));    // gráfico error
+        grilla.RowStyles.Add(new RowStyle(SizeType.Percent, 25));    // gráfico prob.
+        grilla.RowStyles.Add(new RowStyle(SizeType.Percent, 25));    // gráfico cola
         grilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 6 * 32 + 12));   // controles (6 sliders)
 
         titulo.Dock = DockStyle.Fill;
         titulo.TextAlign = ContentAlignment.MiddleCenter;
         titulo.Font = new Font("Segoe UI", 10);
 
-        foreach (var g in new[] { gRetardo, gProb, gCola })
+        foreach (var g in new[] { gRetardo, gError, gProb, gCola })
             g.Dock = DockStyle.Fill;
 
         grilla.Controls.Add(titulo, 0, 0);
         grilla.Controls.Add(gRetardo, 0, 1);
-        grilla.Controls.Add(gProb, 0, 2);
-        grilla.Controls.Add(gCola, 0, 3);
-        grilla.Controls.Add(CrearPanelControles(), 0, 4);
+        grilla.Controls.Add(gError, 0, 2);
+        grilla.Controls.Add(gProb, 0, 3);
+        grilla.Controls.Add(gCola, 0, 4);
+        grilla.Controls.Add(CrearPanelControles(), 0, 5);
         Controls.Add(grilla);
     }
 
@@ -205,16 +208,25 @@ public class Monitor : Form
         double[] qd = sim.HQd.ToArray();
         double[] dp = sim.HDp.ToArray();
         double[] q = sim.HQ.ToArray();
+        double[] err = sim.HErr.ToArray();
         double bufPkts = Parametros.BufferMs / 1000.0 * Parametros.MsrMbps * 1e6 / 8.0 / Config.MSS;
 
         // Ventana de tiempo visible: los últimos 20 s
         double x1 = Math.Max(sim.T, Config.VENTANA_S);
         double x0 = x1 - Config.VENTANA_S;
 
-        // 3) Redibujar los tres gráficos
+        // 3) Redibujar los cuatro gráficos
         Dibujar(gRetardo, t, qd, ScottPlot.Colors.Blue, "Retardo [ms]", x0, x1,
                 ymax: Math.Max(Math.Max(2 * Parametros.TargetMs, qd.Max() * 1.1), 1),
                 lineaH: Parametros.TargetMs, colorH: ScottPlot.Colors.Red, leyenda: true);
+
+        // Señal de error: puede ser negativa, así que el eje Y va de -lim a +lim.
+        // Arriba del 0 = retardo de más (el jefe sube la prob.); abajo = de menos (la baja).
+        double limErr = Math.Max(Parametros.TargetMs, Math.Max(err.Max(), -err.Min()) * 1.1);
+        Dibujar(gError, t, err, ScottPlot.Colors.Purple, "Error [ms]", x0, x1,
+                ymax: limErr, ymin: -limErr,
+                lineaH: 0, colorH: ScottPlot.Colors.Black,
+                textoCurva: "Error e = retardo − target", textoLinea: "Error cero");
 
         Dibujar(gProb, t, dp, ScottPlot.Colors.Orange, "Prob. de descarte", x0, x1,
                 ymax: Math.Max(0.05, dp.Max() * 1.2));
@@ -234,8 +246,13 @@ public class Monitor : Form
     private static void Dibujar(FormsPlot g, double[] x, double[] y, ScottPlot.Color color, string yLabel,
                                 double x0, double x1, double ymax,
                                 double? lineaH = null, ScottPlot.Color? colorH = null,
-                                bool leyenda = false, string? xLabel = null)
+                                bool leyenda = false, string? xLabel = null, double ymin = 0,
+                                string? textoCurva = null, string? textoLinea = null)
     {
+        if (textoCurva != null)
+            leyenda = true;
+        textoCurva ??= "Retardo de cola (estimado)";
+        textoLinea ??= "Referencia (target)";
         var plot = g.Plot;
         plot.Clear();   // se borra y se vuelve a dibujar en cada cuadro
 
@@ -252,8 +269,8 @@ public class Monitor : Form
             h.LinePattern = leyenda ? ScottPlot.LinePattern.Dashed : ScottPlot.LinePattern.Dotted;
             if (leyenda)
             {
-                curva.LegendText = "Retardo de cola (estimado)";
-                h.LegendText = "Referencia (target)";
+                curva.LegendText = textoCurva;
+                h.LegendText = textoLinea;
             }
         }
 
@@ -264,7 +281,7 @@ public class Monitor : Form
         if (xLabel != null)
             plot.XLabel(xLabel);
 
-        plot.Axes.SetLimits(x0, x1, 0, ymax);
+        plot.Axes.SetLimits(x0, x1, ymin, ymax);
         g.Refresh();
     }
 }
